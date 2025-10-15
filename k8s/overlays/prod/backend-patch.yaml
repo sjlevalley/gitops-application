@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitops-backend
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: backend
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DB_HOST
+          value: "prod-gitops-database-service"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "400m"
+          limits:
+            memory: "1Gi"
+            cpu: "800m"

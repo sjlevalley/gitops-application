@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitops-database-init
+  labels:
+    app: gitops-database
+    component: database
+data:
+  01-init.sql: |
+    -- GitOps Database Initialization Script
+    -- This script sets up the initial database schema and data
+
+    -- Create database if it doesn't exist (handled by PostgreSQL init)
+    -- CREATE DATABASE gitops_db;
+
+    -- Connect to the database
+    \c gitops_db;
+
+    -- Create users table
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Create applications table
+    CREATE TABLE IF NOT EXISTS applications (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) UNIQUE NOT NULL,
+        description TEXT,
+        repository_url VARCHAR(255),
+        branch VARCHAR(50) DEFAULT 'main',
+        status VARCHAR(20) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Create deployments table
+    CREATE TABLE IF NOT EXISTS deployments (
+        id SERIAL PRIMARY KEY,
+        application_id INTEGER REFERENCES applications(id),
+        version VARCHAR(50) NOT NULL,
+        commit_hash VARCHAR(40),
+        environment VARCHAR(20) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        deployed_by INTEGER REFERENCES users(id),
+        deployed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        metadata JSONB
+    );
+
+    -- Create deployment_logs table
+    CREATE TABLE IF NOT EXISTS deployment_logs (
+        id SERIAL PRIMARY KEY,
+        deployment_id INTEGER REFERENCES deployments(id),
+        log_level VARCHAR(10) NOT NULL,
+        message TEXT NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Insert initial data
+    INSERT INTO applications (name, description, repository_url, branch) VALUES
+    ('gitops-frontend', 'Frontend application built with Next.js', 'https://github.com/your-org/gitops-frontend', 'main'),
+    ('gitops-backend', 'Backend API service built with Node.js/Express', 'https://github.com/your-org/gitops-backend', 'main'),
+    ('gitops-database', 'PostgreSQL database for GitOps application', 'https://github.com/your-org/gitops-database', 'main')
+    ON CONFLICT (name) DO NOTHING;
+
+    -- Create indexes for better performance
+    CREATE INDEX IF NOT EXISTS idx_deployments_application_id ON deployments(application_id);
+    CREATE INDEX IF NOT EXISTS idx_deployments_environment ON deployments(environment);
+    CREATE INDEX IF NOT EXISTS idx_deployments_status ON deployments(status);
+    CREATE INDEX IF NOT EXISTS idx_deployment_logs_deployment_id ON deployment_logs(deployment_id);
+    CREATE INDEX IF NOT EXISTS idx_deployment_logs_timestamp ON deployment_logs(timestamp);
+
+    -- Create updated_at trigger function
+    CREATE OR REPLACE FUNCTION update_updated_at_column()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $$ language 'plpgsql';
+
+    -- Create triggers for updated_at
+    CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+    CREATE TRIGGER update_applications_updated_at BEFORE UPDATE ON applications
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+    -- Grant permissions (adjust as needed for your security requirements)
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO gitops_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO gitops_user;

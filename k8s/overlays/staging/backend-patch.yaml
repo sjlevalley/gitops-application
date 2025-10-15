@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitops-backend
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: backend
+        env:
+        - name: NODE_ENV
+          value: "staging"
+        - name: DB_HOST
+          value: "staging-gitops-database-service"
