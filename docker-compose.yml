@@ -1,0 +1,74 @@
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:15-alpine
+    container_name: gitops-database
+    environment:
+      POSTGRES_DB: gitops_db
+      POSTGRES_USER: gitops_user
+      POSTGRES_PASSWORD: gitops_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./gitops-database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitops_user -d gitops_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gitops-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./gitops-backend
+      dockerfile: Dockerfile
+    container_name: gitops-backend
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_NAME: gitops_db
+      DB_USER: gitops_user
+      DB_PASSWORD: gitops_password
+    ports:
+      - "3001:3001"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - gitops-network
+    volumes:
+      - ./gitops-backend:/app
+      - /app/node_modules
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./gitops-frontend
+      dockerfile: Dockerfile
+    container_name: gitops-frontend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - gitops-network
+    volumes:
+      - ./gitops-frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_data:
+
+networks:
+  gitops-network:
+    driver: bridge

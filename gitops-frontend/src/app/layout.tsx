@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { TodoProvider } from "@/contexts/TodoContext";
 import Navbar from "@/components/Navbar";
 
 const geistSans = Geist({
@@ -34,10 +35,12 @@ export default function RootLayout({
         }}
       >
         <ThemeProvider>
-          <Navbar />
-          <main className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
-            {children}
-          </main>
+          <TodoProvider>
+            <Navbar />
+            <main className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
+              {children}
+            </main>
+          </TodoProvider>
         </ThemeProvider>
       </body>
     </html>
