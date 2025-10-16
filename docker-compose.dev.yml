@@ -4,9 +4,9 @@ services:
     image: postgres:15-alpine
     container_name: gitops-database-dev
     environment:
-      POSTGRES_DB: gitops_db
-      POSTGRES_USER: gitops_user
-      POSTGRES_PASSWORD: gitops_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
@@ -28,13 +28,13 @@ services:
       dockerfile: Dockerfile.dev
     container_name: gitops-backend-dev
     environment:
-      NODE_ENV: development
-      PORT: 3001
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_NAME: gitops_db
-      DB_USER: gitops_user
-      DB_PASSWORD: gitops_password
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3001}
+      DB_HOST: ${DB_HOST:-database}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3001:3001"
     depends_on:
@@ -53,8 +53,8 @@ services:
       dockerfile: Dockerfile.dev
     container_name: gitops-frontend-dev
     environment:
-      NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
     ports:
       - "3000:3000"
     depends_on:

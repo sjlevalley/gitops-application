@@ -45,7 +45,39 @@ k8s/
 
 ## Quick Start
 
-### 1. Build and Deploy
+### 1. Environment Setup
+
+First, set up your environment variables:
+
+```bash
+# Copy the environment template
+cp env.example .env
+
+# Edit the .env file with your actual values
+nano .env
+```
+
+**Important**: The `.env` file contains sensitive information and is automatically ignored by Git. Never commit this file to version control.
+
+### 2. Docker Development
+
+For local development with Docker:
+
+```bash
+# Development environment with hot reloading
+docker-compose -f docker-compose.dev.yml up -d
+
+# Production-like environment
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### 3. Kubernetes Deployment
 
 ```bash
 # Build Docker images
@@ -62,7 +94,7 @@ kubectl apply -k k8s/overlays/staging/
 kubectl apply -k k8s/overlays/prod/
 ```
 
-### 2. Verify Deployment
+### 4. Verify Deployment
 
 ```bash
 # Check pods
@@ -140,7 +172,8 @@ This repository is designed to work with:
 - Non-root containers
 - Resource limits
 - Health checks
-- Secrets management
+- Environment variable management (no hardcoded secrets)
+- Docker volumes excluded from version control
 - Network policies (can be added)
 
 ## Monitoring

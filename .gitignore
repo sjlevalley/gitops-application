@@ -77,3 +77,7 @@ secrets/
 
 # Docker
 .dockerignore
+
+# Docker volumes
+postgres_data/
+postgres_data_dev/
