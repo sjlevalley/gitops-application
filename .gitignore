@@ -69,6 +69,8 @@ Thumbs.db
 *-secret.yaml
 secrets/
 
+/notes
+
 # Terraform
 *.tfstate
 *.tfstate.*
