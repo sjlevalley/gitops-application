@@ -1,171 +1,98 @@
 # GitOps Application Repository
 
-This repository contains the complete GitOps application stack with frontend, backend, and database components.
+This repository contains multiple applications that can be deployed via ArgoCD using GitOps principles. Each application is self-contained with its own source code, Kubernetes manifests, and deployment configurations.
 
-## Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend       │    │   Database      │
-│   (Next.js)     │◄──►│   (Express)     │◄──►│   (PostgreSQL)  │
-│   Port: 3000    │    │   Port: 3001    │    │   Port: 5432    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## Components
-
-### Frontend (`gitops-frontend/`)
-- **Technology**: Next.js 15 with React 19
-- **Features**: Modern UI with dark/light mode, responsive design
-- **Port**: 3000
-
-### Backend (`gitops-backend/`)
-- **Technology**: Node.js with Express
-- **Features**: RESTful API, health checks, database integration
-- **Port**: 3001
-
-### Database (`gitops-database/`)
-- **Technology**: PostgreSQL 15
-- **Features**: Schema management, initialization scripts
-- **Port**: 5432
-
-## GitOps Structure
+## Repository Structure
 
 ```
-k8s/
-├── base/                    # Base Kubernetes manifests
-│   ├── frontend/           # Frontend deployment & service
-│   ├── backend/            # Backend deployment & service
-│   └── database/           # Database deployment, service, PVC
-└── overlays/               # Environment-specific configurations
-    ├── dev/                # Development environment
-    ├── staging/            # Staging environment
-    └── prod/               # Production environment
+gitops-application/
+├── applications/                    # All application manifests and source code
+│   ├── applications-config.yaml    # Configuration for all available apps
+│   ├── README.md                   # Applications overview
+│   ├── todo-app/                   # Todo management application
+│   │   ├── k8s/                    # Kubernetes manifests
+│   │   ├── src/                    # Source code (frontend, backend, database)
+│   │   ├── docker/                 # Docker files
+│   │   ├── docker-compose.yml      # Local development
+│   │   └── README.md               # Application-specific documentation
+│   └── voting-app/                 # Demo voting application
+│       ├── k8s/                    # Kubernetes manifests
+│       └── README.md               # Application documentation
+├── argocd-applicationset.yaml      # Dynamic application deployment
+├── scripts/                        # Utility scripts
+│   └── select-application.sh       # Application selector
+├── notes/                          # Documentation
+└── README.md                       # This file
 ```
+
+## Available Applications
+
+### 1. Todo Management App
+- **Path**: `applications/todo-app/`
+- **Description**: Modern todo management application with Next.js, Express, and PostgreSQL
+- **Components**: Frontend (Next.js), Backend (Express), Database (PostgreSQL)
+- **Environments**: dev, staging, prod
+- **Access**: Frontend (port 3000), Backend API (port 3001)
+
+### 2. Voting App (Demo)
+- **Path**: `applications/voting-app/`
+- **Description**: Complete microservices demo with Docker Hub images
+- **Components**: Vote frontend, Result frontend, Worker, Redis, PostgreSQL
+- **Access**: Vote App (port 30001), Result App (port 30002)
 
 ## Quick Start
 
-### 1. Environment Setup
-
-First, set up your environment variables:
-
+### Option 1: Application Selector (Recommended)
 ```bash
-# Copy the environment template
-cp env.example .env
-
-# Edit the .env file with your actual values
-nano .env
+./scripts/select-application.sh
 ```
 
-**Important**: The `.env` file contains sensitive information and is automatically ignored by Git. Never commit this file to version control.
-
-### 2. Docker Development
-
-For local development with Docker:
-
+### Option 2: Deploy Individual Applications
 ```bash
-# Development environment with hot reloading
-docker-compose -f docker-compose.dev.yml up -d
+# Deploy todo app
+kubectl apply -f applications/todo-app/k8s/overlays/dev/
 
-# Production-like environment
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
+# Deploy voting app
+kubectl apply -f applications/voting-app/
 ```
 
-### 3. Kubernetes Deployment
-
+### Option 3: ArgoCD ApplicationSet
 ```bash
-# Build Docker images
-docker build -f docker/frontend.Dockerfile -t gitops-frontend:latest .
-docker build -f docker/backend.Dockerfile -t gitops-backend:latest .
-
-# Deploy to development
-kubectl apply -k k8s/overlays/dev/
-
-# Deploy to staging
-kubectl apply -k k8s/overlays/staging/
-
-# Deploy to production
-kubectl apply -k k8s/overlays/prod/
+# Deploy all applications dynamically
+kubectl apply -f argocd-applicationset.yaml
 ```
-
-### 4. Verify Deployment
-
-```bash
-# Check pods
-kubectl get pods -n gitops-application-dev
-
-# Check services
-kubectl get services -n gitops-application-dev
-
-# Port forward for testing
-kubectl port-forward -n gitops-application-dev svc/dev-gitops-frontend-service 3000:80
-kubectl port-forward -n gitops-application-dev svc/dev-gitops-backend-service 3001:3001
-```
-
-## Environment Differences
-
-| Environment | Replicas | Resources | Storage | Image Tags |
-|-------------|----------|-----------|---------|------------|
-| **Dev**     | 1        | Minimal   | 5Gi     | dev-latest |
-| **Staging** | 2        | Medium    | 20Gi    | staging-latest |
-| **Prod**    | 3        | High      | 100Gi   | v1.0.0 |
-
-## API Endpoints
-
-### Backend API
-- `GET /health` - Health check
-- `GET /api/status` - Service status
-- `GET /api/applications` - List applications
-- `GET /api/deployments` - List deployments
-
-### Frontend
-- `GET /` - Main application
-- Theme toggle in navbar
 
 ## Development
 
 ### Local Development
+Each application has its own development setup. See the individual application README files:
 
-```bash
-# Frontend
-cd gitops-frontend
-npm install
-npm run dev
+- [Todo App Development](applications/todo-app/README.md)
+- [Voting App Development](applications/voting-app/README.md)
 
-# Backend
-cd gitops-backend
-npm install
-npm run dev
-```
+### Adding New Applications
 
-### Database Schema
-
-The database is automatically initialized with:
-- Users table
-- Applications table
-- Deployments table
-- Deployment logs table
+1. Create a new directory under `applications/`
+2. Add your Kubernetes manifests
+3. Update `applications/applications-config.yaml`
+4. Update `argocd-applicationset.yaml` if using dynamic deployment
+5. Update `scripts/select-application.sh` for the selector
 
 ## GitOps Best Practices
 
-1. **Base Configuration**: All common configurations in `k8s/base/`
-2. **Environment Overlays**: Environment-specific changes in `k8s/overlays/`
-3. **Image Management**: Different image tags per environment
-4. **Resource Scaling**: Appropriate resource limits per environment
-5. **Secrets Management**: Kubernetes secrets for sensitive data
+1. **Application Isolation**: Each application is self-contained
+2. **Environment Management**: Support for multiple environments
+3. **Source of Truth**: Git repository is the single source of truth
+4. **Automated Deployment**: ArgoCD monitors and deploys changes
+5. **Configuration Management**: Environment-specific configurations
 
-## CI/CD Integration
+## Documentation
 
-This repository is designed to work with:
-- **ArgoCD** for GitOps deployment
-- **GitHub Actions** for CI/CD pipelines
-- **Docker Registry** for image storage
+- [Applications Overview](applications/README.md)
+- [ArgoCD Installation](notes/02-argocd-installation.md)
+- [CI/CD Pipeline Setup](notes/03-cicd-pipeline-setup.md)
+- [Secrets Management](notes/05-secrets-management-setup.md)
+- [Monitoring Setup](notes/06-monitoring-setup.md)
 
 ## Security
 
@@ -173,7 +100,6 @@ This repository is designed to work with:
 - Resource limits
 - Health checks
 - Environment variable management (no hardcoded secrets)
-- Docker volumes excluded from version control
 - Network policies (can be added)
 
 ## Monitoring
