@@ -192,9 +192,9 @@ export default function TodoItem({ todo }: TodoItemProps) {
                 className="text-xs mt-2"
                 style={{ color: 'var(--muted-foreground)' }}
               >
-                Created: {formatDate(todo.createdAt)}
-                {todo.updatedAt !== todo.createdAt && (
-                  <span> • Updated: {formatDate(todo.updatedAt)}</span>
+                Created: {formatDate(todo.created_at)}
+                {todo.updated_at !== todo.created_at && (
+                  <span> • Updated: {formatDate(todo.updated_at)}</span>
                 )}
               </p>
             </div>

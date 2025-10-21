@@ -1,5 +1,5 @@
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database (same for both dev and prod)
   database:
     image: postgres:15-alpine
     container_name: gitops-database
@@ -12,7 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./gitops-database/init:/docker-entrypoint-initdb.d
+      - ./src/database/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gitops_user -d gitops_db"]
       interval: 10s
@@ -21,10 +21,10 @@ services:
     networks:
       - gitops-network
 
-  # Backend API
+  # Backend API (Development with hot reloading)
   backend:
     build:
-      context: ./gitops-backend
+      context: ./src/backend
       dockerfile: Dockerfile
     container_name: gitops-backend
     environment:
@@ -43,18 +43,20 @@ services:
     networks:
       - gitops-network
     volumes:
-      - ./gitops-backend:/app
+      - ./src/backend:/app
       - /app/node_modules
 
-  # Frontend (Next.js)
+  # Frontend (Development with hot reloading)
   frontend:
     build:
-      context: ./gitops-frontend
+      context: ./src/frontend
       dockerfile: Dockerfile
     container_name: gitops-frontend
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"
     depends_on:
@@ -62,7 +64,7 @@ services:
     networks:
       - gitops-network
     volumes:
-      - ./gitops-frontend:/app
+      - ./src/frontend:/app
       - /app/node_modules
       - /app/.next
 

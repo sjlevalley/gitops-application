@@ -4,8 +4,8 @@
 -- Create database if it doesn't exist (handled by PostgreSQL init)
 -- CREATE DATABASE gitops_db;
 
--- Connect to the database
-\c gitops_db;
+-- Connect to the database (use the default database created by POSTGRES_DB)
+-- The database name will be set by the POSTGRES_DB environment variable
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (

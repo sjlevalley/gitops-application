@@ -105,7 +105,7 @@ export default function TodoList() {
 
   // Sort todos by creation date (most recent first)
   const sortedTodos = [...todos].sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    new Date(a.created_at).getTime() > new Date(b.created_at).getTime() ? -1 : 1
   );
   
   const completedTodos = sortedTodos.filter(todo => todo.completed);
