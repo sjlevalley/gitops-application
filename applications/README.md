@@ -1,14 +1,13 @@
 # Applications Directory
 
-This directory contains all the applications that can be deployed via ArgoCD. Each application is organized in its own subdirectory with its Kubernetes manifests.
+This directory contains the source code for all applications. **Kubernetes manifests are stored in the `gitops-kubernetes` repository** following GitOps best practices.
 
 ## Directory Structure
 
 ```
 applications/
-├── applications-config.yaml    # Configuration for all available applications
-├── voting-app/                 # Demo voting application
-├── todo-app/                   # Todo management application
+├── voting-app/                 # Demo voting application (source code)
+├── todo-app/                   # Todo management application (source code)
 ├── blog-app/                   # Blog platform (future)
 └── ecommerce-app/              # E-commerce store (future)
 ```
@@ -25,7 +24,8 @@ applications/
 - **Images**: Docker Hub (`dockersamples/examplevotingapp_*`)
 
 ### 2. Todo Management App
-- **Path**: `applications/todo-app/k8s/overlays/`
+- **Source Code Path**: `applications/todo-app/`
+- **K8s Manifests Path**: `gitops-kubernetes/applications/todo-app/k8s/overlays/`
 - **Description**: Modern todo management application
 - **Components**: Next.js frontend, Express backend, PostgreSQL database
 - **Environments**: dev, staging, prod
@@ -46,40 +46,30 @@ applications/
 
 ## Deployment Methods
 
+Kubernetes manifests and ArgoCD configurations are in the `gitops-kubernetes` repository. See that repository for deployment instructions.
+
 ### Method 1: Application Selector Script
 ```bash
 ./scripts/select-application.sh
 ```
 
-### Method 2: Individual Application Manifests
-```bash
-# Deploy voting app
-kubectl apply -f argocd-voting-app.yaml
-
-# Deploy todo app
-kubectl apply -f argocd-todo-app-dev.yaml
-```
-
-### Method 3: ApplicationSet (Dynamic)
-```bash
-# Deploy all applications dynamically
-kubectl apply -f argocd-applicationset.yaml
-```
+### Method 2: GitOps via ArgoCD
+All deployments are managed through the `gitops-kubernetes` repository using ArgoCD.
 
 ## Adding New Applications
 
-1. Create a new directory under `applications/`
-2. Add your Kubernetes manifests
-3. Update `applications-config.yaml`
-4. Update `argocd-applicationset.yaml` if using dynamic deployment
+1. Create a new directory under `applications/` with your source code
+2. Add Kubernetes manifests to `gitops-kubernetes/applications/`
+3. Update `applications-config.yaml` in `gitops-kubernetes`
+4. Update `argocd-applicationset.yaml` in `gitops-kubernetes` if using dynamic deployment
 5. Update `scripts/select-application.sh` for the selector
 
 ## Configuration
 
-The `applications-config.yaml` file defines all available applications and their properties. This file is used by:
+The `applications-config.yaml` file (in `gitops-kubernetes`) defines all available applications and their properties. This file is used by:
 - Application selector script
 - Documentation generation
-- Future automation tools
+- ArgoCD ApplicationSet
 
 ## Best Practices
 

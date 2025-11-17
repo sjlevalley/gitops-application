@@ -25,12 +25,12 @@ deploy_voting_app() {
     # Create project if it doesn't exist
     argocd proj create voting-app \
         --description "Voting App Project - Demo app with Docker Hub images" \
-        --src "https://github.com/sjlevalley/gitops-application" \
+        --src "https://github.com/sjlevalley/gitops-kubernetes" \
         --dest "https://kubernetes.default.svc,default" 2>/dev/null || echo "Project already exists"
     
     # Create application
     argocd app create voting-app \
-        --repo https://github.com/sjlevalley/gitops-application \
+        --repo https://github.com/sjlevalley/gitops-kubernetes \
         --path applications/voting-app \
         --dest-server https://kubernetes.default.svc \
         --dest-namespace default \
@@ -62,12 +62,12 @@ deploy_todo_app() {
     # Create project if it doesn't exist
     argocd proj create gitops-application \
         --description "GitOps Application Project" \
-        --src "https://github.com/sjlevalley/gitops-application" \
+        --src "https://github.com/sjlevalley/gitops-kubernetes" \
         --dest "https://kubernetes.default.svc,$NAMESPACE" 2>/dev/null || echo "Project already exists"
     
     # Create application
     argocd app create todo-app-$ENV \
-        --repo https://github.com/sjlevalley/gitops-application \
+        --repo https://github.com/sjlevalley/gitops-kubernetes \
         --path applications/todo-app/k8s/overlays/$ENV \
         --dest-server https://kubernetes.default.svc \
         --dest-namespace $NAMESPACE \

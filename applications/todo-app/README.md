@@ -33,15 +33,6 @@ A modern todo management application built with Next.js, Express, and PostgreSQL
 
 ```
 todo-app/
-├── k8s/                          # Kubernetes manifests
-│   ├── base/                     # Base configurations
-│   │   ├── frontend/
-│   │   ├── backend/
-│   │   └── database/
-│   └── overlays/                 # Environment-specific configs
-│       ├── dev/
-│       ├── staging/
-│       └── prod/
 ├── src/                          # Source code
 │   ├── frontend/                 # Next.js frontend
 │   ├── backend/                  # Express backend
@@ -57,6 +48,8 @@ todo-app/
 ├── dev-cleanup.sh                # Development cleanup script
 └── prod-test.sh                  # Production testing script
 ```
+
+**Note**: Kubernetes manifests are stored in the `gitops-kubernetes` repository at `applications/todo-app/k8s/`
 
 ## Quick Start
 
@@ -88,19 +81,14 @@ docker-compose down
 
 ### 3. Kubernetes Deployment
 
+Kubernetes manifests are in the `gitops-kubernetes` repository. For deployment instructions, see that repository.
+
 ```bash
 # Build Docker images
 docker build -f docker/frontend.Dockerfile -t todo-frontend:latest src/frontend/
 docker build -f docker/backend.Dockerfile -t todo-backend:latest src/backend/
 
-# Deploy to development
-kubectl apply -k k8s/overlays/dev/
-
-# Deploy to staging
-kubectl apply -k k8s/overlays/staging/
-
-# Deploy to production
-kubectl apply -k k8s/overlays/prod/
+# Kubernetes deployment is managed via GitOps in the gitops-kubernetes repository
 ```
 
 ### 4. Verify Deployment

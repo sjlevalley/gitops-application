@@ -1,29 +1,30 @@
 # GitOps Application Repository
 
-This repository contains multiple applications that can be deployed via ArgoCD using GitOps principles. Each application is self-contained with its own source code, Kubernetes manifests, and deployment configurations.
+This repository contains the source code for applications that are deployed via ArgoCD using GitOps principles. **Kubernetes manifests are stored in a separate repository** (`gitops-kubernetes`) following GitOps best practices.
 
 ## Repository Structure
 
 ```
 gitops-application/
-├── applications/                    # All application manifests and source code
-│   ├── applications-config.yaml    # Configuration for all available apps
+├── applications/                    # Application source code
 │   ├── README.md                   # Applications overview
 │   ├── todo-app/                   # Todo management application
-│   │   ├── k8s/                    # Kubernetes manifests
 │   │   ├── src/                    # Source code (frontend, backend, database)
 │   │   ├── docker/                 # Docker files
 │   │   ├── docker-compose.yml      # Local development
 │   │   └── README.md               # Application-specific documentation
 │   └── voting-app/                 # Demo voting application
-│       ├── k8s/                    # Kubernetes manifests
 │       └── README.md               # Application documentation
-├── argocd-applicationset.yaml      # Dynamic application deployment
 ├── scripts/                        # Utility scripts
 │   └── select-application.sh       # Application selector
 ├── notes/                          # Documentation
 └── README.md                       # This file
 ```
+
+## Related Repositories
+
+- **gitops-kubernetes**: Contains all Kubernetes manifests and ArgoCD configurations
+- **gitops-infra**: Contains infrastructure setup and configuration
 
 ## Available Applications
 
@@ -47,20 +48,11 @@ gitops-application/
 ./scripts/select-application.sh
 ```
 
-### Option 2: Deploy Individual Applications
-```bash
-# Deploy todo app
-kubectl apply -f applications/todo-app/k8s/overlays/dev/
-
-# Deploy voting app
-kubectl apply -f applications/voting-app/
-```
+### Option 2: Deploy via GitOps Kubernetes Repository
+Kubernetes manifests are in the `gitops-kubernetes` repository. See that repository for deployment instructions.
 
 ### Option 3: ArgoCD ApplicationSet
-```bash
-# Deploy all applications dynamically
-kubectl apply -f argocd-applicationset.yaml
-```
+The ArgoCD ApplicationSet configuration is in the `gitops-kubernetes` repository.
 
 ## Development
 
@@ -72,10 +64,10 @@ Each application has its own development setup. See the individual application R
 
 ### Adding New Applications
 
-1. Create a new directory under `applications/`
-2. Add your Kubernetes manifests
-3. Update `applications/applications-config.yaml`
-4. Update `argocd-applicationset.yaml` if using dynamic deployment
+1. Create a new directory under `applications/` with your source code
+2. Add Kubernetes manifests to the `gitops-kubernetes` repository
+3. Update `applications/applications-config.yaml` in `gitops-kubernetes`
+4. Update `argocd-applicationset.yaml` in `gitops-kubernetes` if using dynamic deployment
 5. Update `scripts/select-application.sh` for the selector
 
 ## GitOps Best Practices
