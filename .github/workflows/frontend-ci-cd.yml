@@ -1,0 +1,115 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'applications/todo-app/src/frontend/**'
+      - 'applications/todo-app/src/frontend/Dockerfile'
+      - '.github/workflows/frontend-ci-cd.yml'
+
+env:
+  IMAGE_NAME: gitops-frontend
+  REGISTRY: docker.io  # Change to ghcr.io if using GitHub Container Registry
+  REGISTRY_USER: ${{ secrets.DOCKER_USERNAME }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+          cache-dependency-path: applications/todo-app/src/frontend/yarn.lock
+
+      - name: Install dependencies
+        working-directory: applications/todo-app/src/frontend
+        run: yarn install --frozen-lockfile
+
+      - name: Run linter
+        working-directory: applications/todo-app/src/frontend
+        run: yarn lint
+
+      - name: Run type check
+        working-directory: applications/todo-app/src/frontend
+        run: yarn type-check
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Generate image tag
+        id: image_tag
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          TAG="${TIMESTAMP}-${SHORT_SHA}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Image tag: ${TAG}"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: applications/todo-app/src/frontend
+          file: applications/todo-app/src/frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_USER }}/${{ env.IMAGE_NAME }}:${{ steps.image_tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_USER }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  update-gitops:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout gitops-kubernetes repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/gitops-kubernetes
+          token: ${{ secrets.GITOPS_KUBERNETES_TOKEN }}
+          path: gitops-kubernetes
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update image tags in kustomization files
+        working-directory: gitops-kubernetes
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          NEW_TAG="${TIMESTAMP}-${SHORT_SHA}"
+          
+          # Update dev overlay
+          sed -i "s/newTag:.*dev-latest/newTag: ${NEW_TAG}/" overlays/dev/kustomization.yaml
+          
+          # Update staging overlay
+          sed -i "s/newTag:.*staging-latest/newTag: ${NEW_TAG}/" overlays/staging/kustomization.yaml
+          
+          # For production, you might want to use semantic versioning
+          # For now, we'll update it to the same tag
+          # sed -i "s/newTag:.*v[0-9.]*/newTag: ${NEW_TAG}/" overlays/prod/kustomization.yaml
+          
+          echo "Updated image tag to: ${NEW_TAG}"
+
+      - name: Commit and push changes
+        working-directory: gitops-kubernetes
+        run: |
+          git add overlays/dev/kustomization.yaml overlays/staging/kustomization.yaml
+          git diff --staged --quiet || git commit -m "chore: update frontend image to ${{ steps.image_tag.outputs.tag }} [skip ci]"
+          git push

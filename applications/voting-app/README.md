@@ -1,6 +1,8 @@
-# Voting App - Kubernetes Example
+# Voting App - Official Docker Example
 
-This is the Docker Voting App example deployed on Kubernetes. It demonstrates a complete microservices architecture with frontend, backend, and database components.
+This directory contains references to the official Docker Voting App example deployed on Kubernetes. The actual Kubernetes manifests are sourced from the [official Docker repository](https://github.com/dockersamples/example-voting-app/tree/main/k8s-specifications).
+
+This application demonstrates a complete microservices architecture with frontend, backend, and database components.
 
 ## Architecture
 
@@ -12,29 +14,49 @@ This is the Docker Voting App example deployed on Kubernetes. It demonstrates a 
 
 ## Deployment
 
-### Prerequisites
-- Kubernetes cluster is running
-- kubectl is configured to access the cluster
+### Recommended: Deploy via ArgoCD (GitOps)
 
-### Deploy the Application
+The recommended way to deploy this application is through ArgoCD using the official Docker specifications:
+
+1. **Install ArgoCD** (follow the ArgoCD installation guide)
+2. **Create the application** using the ArgoCD configuration in `gitops-application/notes/02-argocd-installation.md`
+3. **Access the application** at the NodePort URLs
+
+### Alternative: Direct kubectl deployment
+
+If you want to deploy manually, use the official Docker repository:
 
 ```bash
-# Deploy all components
-kubectl apply -f .
+# Clone the official Docker voting app repository
+git clone https://github.com/dockersamples/example-voting-app.git
+cd example-voting-app
+
+# Deploy using the official Kubernetes specifications
+kubectl apply -f k8s-specifications/
 
 # Check deployment status
 kubectl get pods
 kubectl get services
 ```
 
+### Note about Local Manifests
+
+The `k8s/` directory in this repository contains a copy of the official Docker voting app manifests for reference. However, for the most up-to-date and official specifications, always use the [official Docker repository](https://github.com/dockersamples/example-voting-app/tree/main/k8s-specifications).
+
 ### Access the Application
 
-The application will be accessible via NodePort:
+The application will be accessible via NodePort services. Replace `<MASTER_IP>` with your Kubernetes master node's public IP:
 
-- **Vote App**: `http://100.27.206.7:30001`
-- **Result App**: `http://100.27.206.7:30002`
+- **Vote App**: `http://<MASTER_IP>:30001`
+- **Result App**: `http://<MASTER_IP>:30002`
 
-**Note**: The master node public IP is `100.27.206.7`. If you're accessing from within the VPC, you can also use the private IP `172.31.19.223`.
+**To get your master node's IP:**
+```bash
+# From master node
+curl -s http://169.254.169.254/latest/meta-data/public-ipv4
+
+# Or check your Terraform output/AWS console
+```
 
 ### Testing the Application
 
@@ -92,3 +114,21 @@ kubectl get endpoints
 | Worker | dockersamples/examplevotingapp_worker | - | None |
 | Redis | redis:alpine | 6379 | ClusterIP |
 | PostgreSQL | postgres:15-alpine | 5432 | ClusterIP |
+
+## Local k8s Directory
+
+The `k8s/` directory contains a reference copy of the Kubernetes manifests from the official Docker repository. These are provided for:
+
+- **Reference and comparison** with the official specifications
+- **Local development** and testing
+- **Understanding the application structure**
+
+**⚠️ Important**: For production deployments and ArgoCD usage, always use the official Docker repository as the source of truth. The local manifests may become outdated.
+
+## Source Repository
+
+This application is based on the official Docker Voting App example:
+
+- **GitHub Repository**: [dockersamples/example-voting-app](https://github.com/dockersamples/example-voting-app)
+- **Kubernetes Specifications**: [k8s-specifications directory](https://github.com/dockersamples/example-voting-app/tree/main/k8s-specifications)
+- **Documentation**: [Official README](https://github.com/dockersamples/example-voting-app/blob/main/README.md)
