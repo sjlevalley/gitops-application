@@ -14,6 +14,12 @@ spec:
       labels:
         app: vote
     spec:
+      # Helps single-label names like "redis" resolve reliably with cluster search domains
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "2"
       containers:
       - name: vote
         image: dockersamples/examplevotingapp_vote:before
