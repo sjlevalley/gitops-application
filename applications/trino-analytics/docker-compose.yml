@@ -1,3 +1,16 @@
+# Optional stacks use Compose profiles (no need to comment large blocks):
+#   docker compose --profile superset up -d
+#   docker compose --profile trino-gateway up -d
+#   docker compose --profile superset --profile trino-gateway up -d
+#
+# To pin optional services on by default, delete the `profiles:` line under each
+# optional service (superset-*, trino-gateway*, trino-gateway-seed).
+#
+# Superset: http://localhost:8088  (admin / admin — change after first login)
+# Trino Gateway: http://localhost:8090  — routes to Trino after seed registers backend
+#
+# Trino is started with JAVA_TOOL_OPTIONS so URLs stay correct when clients use the Gateway.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -55,6 +68,9 @@ services:
   trino:
     image: trinodb/trino:latest
     container_name: trino
+    environment:
+      # Required when routing clients through Trino Gateway (next-hop URLs stay on the gateway).
+      - JAVA_TOOL_OPTIONS=-Dhttp-server.process-forwarded=true
     ports:
       - "8080:8080"
     volumes:
@@ -81,6 +97,120 @@ services:
       - trino
     restart: unless-stopped
 
+  # --- Apache Superset (profile: superset) ---
+  superset-db:
+    profiles: ["superset"]
+    image: postgres:16-alpine
+    container_name: superset-db
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_DB: superset
+    volumes:
+      - superset_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset -d superset"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  superset-redis:
+    profiles: ["superset"]
+    image: redis:7-alpine
+    container_name: superset-redis
+    restart: unless-stopped
+
+  superset:
+    profiles: ["superset"]
+    image: apache/superset:latest-dev
+    container_name: superset
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-dev-only-change-for-any-real-use}
+      SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@superset-db:5432/superset
+      REDIS_HOST: superset-redis
+      REDIS_PORT: "6379"
+    depends_on:
+      superset-db:
+        condition: service_healthy
+      superset-redis:
+        condition: service_started
+      trino:
+        condition: service_started
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        superset db upgrade
+        superset fab create-admin --username admin --firstname Admin --lastname User --email admin@localhost --password admin || true
+        superset init
+        exec superset run -h 0.0.0.0 -p 8088
+    restart: unless-stopped
+
+  # --- Trino Gateway (profile: trino-gateway) ---
+  trino-gateway-db:
+    profiles: ["trino-gateway"]
+    image: postgres:17-alpine
+    container_name: trino-gateway-db
+    environment:
+      POSTGRES_USER: trino_gateway
+      POSTGRES_PASSWORD: gateway_local_dev
+      POSTGRES_DB: trino_gateway_db
+    volumes:
+      - trino_gateway_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trino_gateway -d trino_gateway_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  trino-gateway:
+    profiles: ["trino-gateway"]
+    image: trinodb/trino-gateway:latest
+    container_name: trino-gateway
+    depends_on:
+      trino-gateway-db:
+        condition: service_healthy
+      trino:
+        condition: service_started
+    ports:
+      # Host 8090 avoids clashing with Trino on 8080.
+      - "8090:8080"
+    volumes:
+      - ./src/trino-gateway/config.yaml:/etc/trino-gateway/config.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/lib/trino-gateway/bin/health-check || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  trino-gateway-seed:
+    profiles: ["trino-gateway"]
+    image: curlimages/curl:8.5.0
+    container_name: trino-gateway-seed
+    depends_on:
+      trino-gateway:
+        condition: service_healthy
+      trino:
+        condition: service_started
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        curl -sfS -X POST "http://trino-gateway:8080/gateway/backend/modify/add" \
+          -H "Content-Type: application/json" \
+          -d '{"name":"docker-trino","proxyTo":"http://trino:8080","active":true,"routingGroup":"adhoc"}' \
+          && echo "Registered Trino backend on Gateway" || echo "Backend registration skipped or failed (add manually in Gateway UI if needed)"
+    restart: "no"
+
 volumes:
   postgres_data:
   mysql_data:
+  superset_db_data:
+  trino_gateway_db_data:

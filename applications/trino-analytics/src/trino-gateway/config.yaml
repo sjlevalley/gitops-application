@@ -1,0 +1,18 @@
+# Trino Gateway — lab defaults (trino-gateway profile).
+# Gateway UI/API on host: http://localhost:8090 (container listens on 8080).
+serverConfig:
+  node.environment: docker_lab
+  http-server.http.port: 8080
+
+routingRules:
+  rulesEngineEnabled: False
+
+dataStore:
+  jdbcUrl: jdbc:postgresql://trino-gateway-db:5432/trino_gateway_db
+  user: trino_gateway
+  password: gateway_local_dev
+  driver: org.postgresql.Driver
+  queryHistoryHoursRetention: 24
+
+clusterStatsConfiguration:
+  monitorType: INFO_API
